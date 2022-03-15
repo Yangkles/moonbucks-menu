@@ -1,3 +1,9 @@
+//공부해 보아야 할 점.
+// 1. 이벤트 위임에 대해서 공부해볼 것
+// 2. 요구사항을 어떻게 전략적으로 접근해야하는지, 단계별로 세세하게 나누는게 중요하다는 걸 알게 됨
+// 3. DOM요소를 가져올 때는 $표시를 써서 변수처럼 사용할 수 있다.
+// 4. 새롭게 알게 된 메서드 innerText, innerHTML, insertAdjacentHtml, closet, e.target 
+
 /* step1 요구사항 - 돔 조작과 이벤트 핸들링으로 메뉴 관리하기
 세부적인 요구 사항에 대해서 명확하게 체크해 놓는 것이 중요함.
 TODO 메뉴 추가
@@ -15,13 +21,90 @@ TODO 메뉴 수정
 TODO 메뉴 삭제
 - [x] 메뉴 삭제 버튼 클릭 이벤트를 받고, 메뉴 삭제 컨펌 모달창이 뜬다.
 - [x] 확인 버튼을 클릭하면 메뉴가 삭제된다.
-- [x] 총 메뉴 갯수를 count하여 상단에 보여준다.*/
+- [x] 총 메뉴 갯수를 count하여 상단에 보여준다.
 
+step2 요구사항 - 상태 관리로 메뉴 관리하기
 
-const $ = (selector) => document.querySelector(selector)
+TODO localStorage Read $ Write
+- [x] localStorage에 데이터를 저장한다. 
+    - [x] 메뉴를 추가할 때
+    - [x] 메뉴를 수정할 때
+    - [x] 메뉴를 삭제할 때
+- [x] localStorage에 있는 데이터를 읽어온다.
+
+TODO 카테고리 별 메뉴판 관리
+- [ ] 에스프레소 메뉴판 관리
+- [ ] 프라푸치노 메뉴판 관리 
+- [ ] 블렌디드 메뉴판 관리 
+- [ ] 티바나 메뉴판 관리 
+- [ ] 디저트 메뉴판 관리
+
+TODO 페이지 접근시 최초 데이터 Read & Rendering
+- [ ] 페이지에 최초로 로딩될때 localStorage에 에스프레소 메뉴를 읽어온다.
+- [ ] 에스프레소 메뉴를 페이지에 그려준다.
+
+TODO 품절 상태 관리
+- [ ] 품절 상태인 경우를 보여줄 수 있게 sold-out class를 추가하여 상태를 변경한다.
+- [ ] 품질 버튼을 추가한다.
+- [ ] 품절 버튼을 클릭하면 localStorage에 상태 값이 저장된다.
+- [ ] 클릭이벤에서 가장 가까운 li 태그의 class 속성 값에 sold-out을 추가한다.*/
+
+const $ = (selector) => document.querySelector(selector);
+
+//localStorage에 저장 및 읽어오기
+const store = {
+    setLocalStorage(menu){
+        localStorage.setItem("menu", JSON.stringify(menu));
+        //localSorage에는 문자열로만 저장할 수 있기 때문에 menu 같은 객체를 JSON.stringify 매소드를 통해 문자열로 변경하여 저장.
+    },
+    getLocalStorage(){
+        return JSON.parse(localStorage.getItem("menu"));
+    },
+}
 
 function App() {
-    
+    //상태는 변하는 데이터, 이 앱에서 변하는 것이 무엇인가? - 메뉴명
+    this.menu = [];//this 메소드로 상태값을 선언
+    this.init = () => {
+        if(store.getLocalStorage().length > 1){
+            this.menu = store.getLocalStorage();
+        }
+        render();
+    }
+
+    const render = () => {
+        const template = this.menu.map((menuItem, index) => {
+            //메뉴를 수정하는 것에 있어서 메뉴를 식별하기 위해서 메뉴에 아이디를 부여함. <data-menu-id>
+            return`
+            <li data-menu-id="${index}" class="menu-list-item d-flex items-center py-2">
+                <span class="w-100 pl-2 menu-name">${menuItem.name}</span>
+                <button
+                    type="button"
+                    class="bg-gray-50 text-gray-500 text-sm mr-1 menu-edit-button"
+                >
+                    수정
+                </button>
+                <button
+                    type="button"
+                    class="bg-gray-50 text-gray-500 text-sm menu-remove-button"
+                >
+                    삭제
+                </button>
+            </li>`;
+        })
+        .join("");
+        //메뉴별로 화면 마크업을 만들기 위해서 map 메소드로 순회하게 만듬.
+        //map 메소드는 <li><li>, <li><li>, <li><li> 형태
+        
+        // 입력한 값을 남기는 용도
+        // innerHTML 메소드를 사용하면 계속 덧씌워 사용하기 때문에 나열하는 모양새가 아니게 됨.
+        // insertAdjacentHTML 메소드를 사용하면 나열할 수 있음
+        $("#espresso-menu-list").innerHTML = template;
+        
+        //총 갯수를 카운트해주는 용도
+        updateMenuCount();
+    };
+
     // 총 갯수를 카운트 해주는 용도
     const updateMenuCount = () => {
         const menuCount = $("#espresso-menu-list").querySelectorAll("li").length;
@@ -36,50 +119,36 @@ function App() {
         }
         //입력하는 용도
         const espressoMenuName = $("#espresso-menu-name").value;
-        const menuItemTemplate = (espressoMenuName) => {
-            return `
-                <li class="menu-list-item d-flex items-center py-2">
-                    <span class="w-100 pl-2 menu-name">${espressoMenuName}</span>
-                    <button
-                        type="button"
-                        class="bg-gray-50 text-gray-500 text-sm mr-1 menu-edit-button"
-                    >
-                        수정
-                    </button>
-                    <button
-                        type="button"
-                        class="bg-gray-50 text-gray-500 text-sm menu-remove-button"
-                    >
-                        삭제
-                    </button>
-                </li>`;
-        }       
-        // 입력한 값을 남기는 용도
-        // innerHTML 메소드를 사용하면 계속 덧씌워 사용하기 때문에 나열하는 모양새가 아니게 됨.
-        // insertAdjacentHTML 메소드를 사용하면 나열할 수 있음
-        $("#espresso-menu-list").insertAdjacentHTML("beforeend", menuItemTemplate(espressoMenuName));
         
-        //총 갯수를 카운트해주는 용도
+        this.menu.push({ name: espressoMenuName});
+        //메뉴를 입력할때 menu로 저장
+        store.setLocalStorage(this.menu);
+        //동시에 localStorage에 메뉴 저장
         
-        updateMenuCount();
-        
+        render();
         //입력 후 초기화 해주는 용도
         
         $("#espresso-menu-name").value = "";
-    }
+    };
 
     const editMenuName = (e) => {
+        const menuId = e.target.closest("li").dataset.menuId
         // 수정하기 위한 prompt 창 만들기
         // 위임 기능에 대해서 공부해보기.
         const $menuName = e.target.closest("li").querySelector(".menu-name")
             //closest는 가장 가까운 태그를 찾는 것임
         const updateMenuName = prompt("메뉴명을 수정하세요.", $menuName.innerText);
-        $menuName.innerText = updateMenuName
+        this.menu[menuId].name = updateMenuName;
+        store.setLocalStorage(this.menu);
+        $menuName.innerText = updateMenuName;
     }
 
     const removeMenuName = (e) => {
         //confirm 태그는 예를 누르면 true 아니오를 누르면 false가 나오므로 if문에 넣어서 사용할 수 있음.
         if(confirm("정말 삭제하시겠습니까?")){
+            const menuId = e.target.closest("li").dataset.menuId
+            this.menu.splice(menuId, 1);
+            store.setLocalStorage(this.menu);
             e.target.closest("li").remove();
             updateMenuCount();
         }
@@ -111,6 +180,6 @@ function App() {
     });
 }
 
-App();
-
+const app = new App();
+app.init();
 
