@@ -32,6 +32,11 @@ TODO localStorage Read $ Write
     - [x] 메뉴를 삭제할 때
 - [x] localStorage에 있는 데이터를 읽어온다.
 
+상태가 왜 중요한 이유?
+사용자의 인터렉션을 잘 반영한 앱을 만들기위해
+산태값이 잘 저장이 되고 잘 불러와져야 동적인 웹페이지를 만들 수 있음.
+
+
 TODO 카테고리 별 메뉴판 관리
 - [ ] 에스프레소 메뉴판 관리
 - [ ] 프라푸치노 메뉴판 관리 
@@ -64,16 +69,24 @@ const store = {
 
 function App() {
     //상태는 변하는 데이터, 이 앱에서 변하는 것이 무엇인가? - 메뉴명
-    this.menu = [];//this 메소드로 상태값을 선언
+    this.menu = {
+        espresso: [],
+        frappuccino: [],
+        blended: [],
+        tevana: [],
+        desert: [],
+    };//this 메소드로 상태값을 선언
+    //지금이 무슨 카테고리인지 알 수 있어야하기 때문에 새로운 상태를 선언
+    this.currentCategory = "espresso";
     this.init = () => {
-        if(store.getLocalStorage().length > 1){
+        if(store.getLocalStorage()){
             this.menu = store.getLocalStorage();
         }
         render();
     }
 
     const render = () => {
-        const template = this.menu.map((menuItem, index) => {
+        const template = this.menu[this.currentCategory].map((menuItem, index) => {
             //메뉴를 수정하는 것에 있어서 메뉴를 식별하기 위해서 메뉴에 아이디를 부여함. <data-menu-id>
             return`
             <li data-menu-id="${index}" class="menu-list-item d-flex items-center py-2">
@@ -99,7 +112,7 @@ function App() {
         // 입력한 값을 남기는 용도
         // innerHTML 메소드를 사용하면 계속 덧씌워 사용하기 때문에 나열하는 모양새가 아니게 됨.
         // insertAdjacentHTML 메소드를 사용하면 나열할 수 있음
-        $("#espresso-menu-list").innerHTML = template;
+        $("#menu-list").innerHTML = template;
         
         //총 갯수를 카운트해주는 용도
         updateMenuCount();
@@ -107,20 +120,20 @@ function App() {
 
     // 총 갯수를 카운트 해주는 용도
     const updateMenuCount = () => {
-        const menuCount = $("#espresso-menu-list").querySelectorAll("li").length;
+        const menuCount = $("#menu-list").querySelectorAll("li").length;
         $(".menu-count").innerText = `총 ${menuCount}개`;
     }
 
     const addMenuName = () => {
         //빈 칸 일때 입력하지 않게 하는 용도
-        if($("#espresso-menu-name").value === ""){
+        if($("#menu-name").value === ""){
             alert("값을 입력해 주세요.");
             return;
         }
         //입력하는 용도
-        const espressoMenuName = $("#espresso-menu-name").value;
+        const menuName = $("#menu-name").value;
         
-        this.menu.push({ name: espressoMenuName});
+        this.menu[this.currentCategory].push({ name: menuName});
         //메뉴를 입력할때 menu로 저장
         store.setLocalStorage(this.menu);
         //동시에 localStorage에 메뉴 저장
@@ -128,7 +141,7 @@ function App() {
         render();
         //입력 후 초기화 해주는 용도
         
-        $("#espresso-menu-name").value = "";
+        $("#menu-name").value = "";
     };
 
     const editMenuName = (e) => {
@@ -138,7 +151,7 @@ function App() {
         const $menuName = e.target.closest("li").querySelector(".menu-name")
             //closest는 가장 가까운 태그를 찾는 것임
         const updateMenuName = prompt("메뉴명을 수정하세요.", $menuName.innerText);
-        this.menu[menuId].name = updateMenuName;
+        this.menu[this.currentCategory][menuId].name = updateMenuName;
         store.setLocalStorage(this.menu);
         $menuName.innerText = updateMenuName;
     }
@@ -147,14 +160,14 @@ function App() {
         //confirm 태그는 예를 누르면 true 아니오를 누르면 false가 나오므로 if문에 넣어서 사용할 수 있음.
         if(confirm("정말 삭제하시겠습니까?")){
             const menuId = e.target.closest("li").dataset.menuId
-            this.menu.splice(menuId, 1);
+            this.menu[this.currentCategory].splice(menuId, 1);
             store.setLocalStorage(this.menu);
             e.target.closest("li").remove();
             updateMenuCount();
         }
     }
     
-    $("#espresso-menu-list").addEventListener("click", (e) => {
+    $("#menu-list").addEventListener("click", (e) => {
         if (e.target.classList.contains("menu-edit-button")) {
             editMenuName(e);
         }
@@ -164,20 +177,31 @@ function App() {
         }
     })
     // form 태그가 자동으로 전송되는 걸 막아준다.
-    $("#espresso-menu-form").addEventListener("submit", (e) => {
+    $("#menu-form").addEventListener("submit", (e) => {
         e.preventDefault();
     });
 
-    $("#espresso-menu-submit-button").addEventListener("click", addMenuName)
+    $("#menu-submit-button").addEventListener("click", addMenuName)
     
     // 메뉴의 이름을 입력 받는 건
-    $("#espresso-menu-name").addEventListener("keypress", (e) => {
+    $("#menu-name").addEventListener("keypress", (e) => {
         //아무 버튼이나 눌러도 alert가 뜨는 걸 막아줌
         if(e.key !== "Enter"){
             return;
         }
         addMenuName();
     });
+
+    $("nav").addEventListener("click", (e) => {
+        //카테고리를 클릭했을 때만 작동하도록 예외처리.
+        const isCategoryButton = e.target.classList.contains("cafe-category-name");
+        if(isCategoryButton){
+            const categoryName = e.target.dataset.categoryName
+            this.currentCategory = categoryName;
+            $("#category-title").innerText = `${e.target.innerText} 메뉴 관리`;
+            render(); 
+        }
+    })
 }
 
 const app = new App();
