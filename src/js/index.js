@@ -27,9 +27,9 @@ step2 요구사항 - 상태 관리로 메뉴 관리하기
 
 TODO localStorage Read $ Write
 - [x] localStorage에 데이터를 저장한다. 
-    - [x] 메뉴를 추가할 때
-    - [x] 메뉴를 수정할 때
-    - [x] 메뉴를 삭제할 때
+- [x] 메뉴를 추가할 때
+- [x] 메뉴를 수정할 때
+- [x] 메뉴를 삭제할 때
 - [x] localStorage에 있는 데이터를 읽어온다.
 
 상태가 왜 중요한 이유?
@@ -38,34 +38,26 @@ TODO localStorage Read $ Write
 
 
 TODO 카테고리 별 메뉴판 관리
-- [ ] 에스프레소 메뉴판 관리
-- [ ] 프라푸치노 메뉴판 관리 
-- [ ] 블렌디드 메뉴판 관리 
-- [ ] 티바나 메뉴판 관리 
-- [ ] 디저트 메뉴판 관리
+- [x] 에스프레소 메뉴판 관리
+- [x] 프라푸치노 메뉴판 관리 
+- [x] 블렌디드 메뉴판 관리 
+- [x] 티바나 메뉴판 관리 
+- [x] 디저트 메뉴판 관리
 
 TODO 페이지 접근시 최초 데이터 Read & Rendering
-- [ ] 페이지에 최초로 로딩될때 localStorage에 에스프레소 메뉴를 읽어온다.
-- [ ] 에스프레소 메뉴를 페이지에 그려준다.
+- [x] 페이지에 최초로 로딩될때 localStorage에 에스프레소 메뉴를 읽어온다.
+- [x] 에스프레소 메뉴를 페이지에 그려준다.
 
 TODO 품절 상태 관리
-- [ ] 품절 상태인 경우를 보여줄 수 있게 sold-out class를 추가하여 상태를 변경한다.
-- [ ] 품질 버튼을 추가한다.
-- [ ] 품절 버튼을 클릭하면 localStorage에 상태 값이 저장된다.
-- [ ] 클릭이벤에서 가장 가까운 li 태그의 class 속성 값에 sold-out을 추가한다.*/
+- [x] 품절 상태인 경우를 보여줄 수 있게 sold-out class를 추가하여 상태를 변경한다.
+- [x] 품질 버튼을 추가한다.
+- [x] 품절 버튼을 클릭하면 localStorage에 상태 값이 저장된다.
+- [x] 클릭이벤에서 가장 가까운 li 태그의 class 속성 값에 sold-out을 추가한다.*/
 
-const $ = (selector) => document.querySelector(selector);
-
+import { $ } from './utils/DOM.js'
+import store from './store/index.js';
 //localStorage에 저장 및 읽어오기
-const store = {
-    setLocalStorage(menu){
-        localStorage.setItem("menu", JSON.stringify(menu));
-        //localSorage에는 문자열로만 저장할 수 있기 때문에 menu 같은 객체를 JSON.stringify 매소드를 통해 문자열로 변경하여 저장.
-    },
-    getLocalStorage(){
-        return JSON.parse(localStorage.getItem("menu"));
-    },
-}
+
 
 function App() {
     //상태는 변하는 데이터, 이 앱에서 변하는 것이 무엇인가? - 메뉴명
@@ -83,6 +75,7 @@ function App() {
             this.menu = store.getLocalStorage();
         }
         render();
+        initEventListeners();
     }
 
     const render = () => {
@@ -90,7 +83,13 @@ function App() {
             //메뉴를 수정하는 것에 있어서 메뉴를 식별하기 위해서 메뉴에 아이디를 부여함. <data-menu-id>
             return`
             <li data-menu-id="${index}" class="menu-list-item d-flex items-center py-2">
-                <span class="w-100 pl-2 menu-name">${menuItem.name}</span>
+                <span class="w-100 pl-2 menu-name ${menuItem.soldOut ? "sold-out": ""} ">${menuItem.name}</span>
+                <button
+                    type="button"
+                    class="bg-gray-50 text-gray-500 text-sm mr-1 menu-sold-out-button"
+                >
+                    품절
+                </button>
                 <button
                     type="button"
                     class="bg-gray-50 text-gray-500 text-sm mr-1 menu-edit-button"
@@ -120,7 +119,7 @@ function App() {
 
     // 총 갯수를 카운트 해주는 용도
     const updateMenuCount = () => {
-        const menuCount = $("#menu-list").querySelectorAll("li").length;
+        const menuCount = this.menu[this.currentCategory].length
         $(".menu-count").innerText = `총 ${menuCount}개`;
     }
 
@@ -153,7 +152,7 @@ function App() {
         const updateMenuName = prompt("메뉴명을 수정하세요.", $menuName.innerText);
         this.menu[this.currentCategory][menuId].name = updateMenuName;
         store.setLocalStorage(this.menu);
-        $menuName.innerText = updateMenuName;
+        render();
     }
 
     const removeMenuName = (e) => {
@@ -162,46 +161,61 @@ function App() {
             const menuId = e.target.closest("li").dataset.menuId
             this.menu[this.currentCategory].splice(menuId, 1);
             store.setLocalStorage(this.menu);
-            e.target.closest("li").remove();
-            updateMenuCount();
+            render();
         }
     }
     
-    $("#menu-list").addEventListener("click", (e) => {
-        if (e.target.classList.contains("menu-edit-button")) {
-            editMenuName(e);
-        }
-        
-        if(e.target.classList.contains("menu-remove-button")) {
-            removeMenuName(e);
-        }
-    })
-    // form 태그가 자동으로 전송되는 걸 막아준다.
-    $("#menu-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-    });
+    const soldOutMenu = (e) => {
+        const menuId = e.target.closest("li").dataset.menuId
+        this.menu[this.currentCategory][menuId].soldOut = 
+            !this.menu[this.currentCategory][menuId].soldOut;
+        store.setLocalStorage(this.menu);
+        render()
+    }
 
-    $("#menu-submit-button").addEventListener("click", addMenuName)
+    const initEventListeners = () => {
+        $("#menu-list").addEventListener("click", (e) => {
+            if (e.target.classList.contains("menu-edit-button")) {
+                editMenuName(e);
+                return;
+            }
+            
+            if(e.target.classList.contains("menu-remove-button")) {
+                removeMenuName(e);
+                return;
+            }
+            if(e.target.classList.contains("menu-sold-out-button")) {
+                soldOutMenu(e);
+                return;
+            }
+        })
+        // form 태그가 자동으로 전송되는 걸 막아준다.
+        $("#menu-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+        });
     
-    // 메뉴의 이름을 입력 받는 건
-    $("#menu-name").addEventListener("keypress", (e) => {
-        //아무 버튼이나 눌러도 alert가 뜨는 걸 막아줌
-        if(e.key !== "Enter"){
-            return;
-        }
-        addMenuName();
-    });
-
-    $("nav").addEventListener("click", (e) => {
-        //카테고리를 클릭했을 때만 작동하도록 예외처리.
-        const isCategoryButton = e.target.classList.contains("cafe-category-name");
-        if(isCategoryButton){
-            const categoryName = e.target.dataset.categoryName
-            this.currentCategory = categoryName;
-            $("#category-title").innerText = `${e.target.innerText} 메뉴 관리`;
-            render(); 
-        }
-    })
+        $("#menu-submit-button").addEventListener("click", addMenuName)
+        
+        // 메뉴의 이름을 입력 받는 건
+        $("#menu-name").addEventListener("keypress", (e) => {
+            //아무 버튼이나 눌러도 alert가 뜨는 걸 막아줌
+            if(e.key !== "Enter"){
+                return;
+            }
+            addMenuName();
+        });
+    
+        $("nav").addEventListener("click", (e) => {
+            //카테고리를 클릭했을 때만 작동하도록 예외처리.
+            const isCategoryButton = e.target.classList.contains("cafe-category-name");
+            if(isCategoryButton){
+                const categoryName = e.target.dataset.categoryName
+                this.currentCategory = categoryName;
+                $("#category-title").innerText = `${e.target.innerText} 메뉴 관리`;
+                render(); 
+            }
+        })
+    };
 }
 
 const app = new App();
